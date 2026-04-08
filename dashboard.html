@@ -393,15 +393,20 @@ footer{background:var(--deep);padding:32px 40px;display:flex;justify-content:spa
 // ===================== TAB SYSTEM =====================
 function showTab(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
+  const target = document.getElementById('tab-'+name);
+  if(target) target.classList.add('active');
+  // Update tab bar highlights
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  const map={'quiz':0,'results':0,'dashboard':1,'dentist':2,'obgyn':3};
+  const tabMap={'quiz':0,'results':0,'dashboard':1,'dentist':2,'obgyn':3};
   const tabs=document.querySelectorAll('.tab-btn');
-  if(tabs[map[name]]) tabs[map[name]].classList.add('active');
+  if(tabs[tabMap[name]] !== undefined) tabs[tabMap[name]].classList.add('active');
   window.scrollTo(0,68);
+  // Init the right module
   if(name==='quiz') initQuiz();
-  if(name==='dashboard') initDashboard();
+  if(name==='dashboard'){ habitsDone=0; initDashboard(); }
   if(name==='obgyn') buildObgynList();
+  // Update URL hash for bookmarking
+  if(name !== 'results') window.location.hash = name;
 }
 
 // ===================== LOCAL STORAGE =====================
@@ -414,13 +419,22 @@ const totalHabits=5;
 
 function initDashboard(){
   const today=new Date().toDateString();
+  // Reset all habit items visually first
+  document.querySelectorAll('.hitem').forEach(el=>{
+    applyHabitDone(el, false);
+  });
+  // Then load saved state
   const savedHabits=loadData('habits_'+today,[false,false,false,false,false]);
   habitsDone=savedHabits.filter(Boolean).length;
   document.querySelectorAll('.hitem').forEach((el,i)=>{if(savedHabits[i])applyHabitDone(el,true);});
   updateHabitUI();
   updateStreak(today);
   const logs=loadData('symptom_logs',[]);
-  if(logs.length>0)renderSymptomHistory();
+  if(logs.length>0) renderSymptomHistory();
+  else {
+    const hist=document.getElementById('symptomHistory');
+    if(hist) hist.style.display='none';
+  }
 }
 
 function updateStreak(today){
@@ -772,8 +786,17 @@ function buildResults(){
   window.scrollTo(0,68);
 }
 
-// Init
-initQuiz();
+// ===================== INIT ON LOAD =====================
+window.addEventListener('load', () => {
+  // Check if URL hash requests a specific tab
+  const hash = window.location.hash.replace('#','');
+  const validTabs = ['quiz','dashboard','dentist','obgyn'];
+  if(hash && validTabs.includes(hash)){
+    showTab(hash);
+  } else {
+    showTab('quiz');
+  }
+});
 </script>
 </body>
 </html>
